@@ -15,8 +15,12 @@ PLUGIN = os.environ.get('PLUGIN')
 # Rabbitmq
 RABBITMQ_URL = os.environ.get('RABBITMQ_URL')
 EXCHANGE = os.environ.get('EXCHANGE')
+EXCHANGE_RESPONSE = os.environ.get('EXCHANGE_RESPONSE')
 EXCHANGE_TYPE = os.environ.get('EXCHANGE_TYPE')
-QUEUE = os.environ.get('QUEUE')
+QUEUE_ETL = os.environ.get('QUEUE_ETL')
+QUEUE_ETL_RESPONSE = os.environ.get('QUEUE_ETL_RESPONSE')
+QUEUE_ETL_ROUTING_KEY = os.environ.get('QUEUE_ETL_ROUTING_KEY')
+QUEUE_ETL_RESPONSE_ROUTING_KEY = os.environ.get('QUEUE_ETL_RESPONSE_ROUTING_KEY')
 CONSUMER_TAG = os.environ.get('CONSUMER_TAG')
 
 
@@ -28,8 +32,12 @@ def load():
         'RABBITMQ_URL',
         'EXCHANGE',
         'EXCHANGE_TYPE',
-        'QUEUE',
-        'CONSUMER_TAG'
+        'QUEUE_ETL',
+        'CONSUMER_TAG',
+        'QUEUE_ETL_RESPONSE',
+        'EXCHANGE_RESPONSE',
+        'QUEUE_ETL_ROUTING_KEY',
+        'QUEUE_ETL_RESPONSE_ROUTING_KEY'
     ]
 
     for env_var in required_env_vars:
