@@ -9,8 +9,16 @@ class RabbitmqHandler:
         self.channel = None
         self.consumer = None
         self.producer = None
-        self.message_data = None
+        self._response_data = None
         self._config_rabbitmq()
+
+    @property
+    def response_data(self):
+        return self._response_data
+
+    @response_data.setter
+    def response_data(self, new_value):
+        self._response_data = new_value
 
     def _config_rabbitmq(self):
 
@@ -31,18 +39,28 @@ class RabbitmqHandler:
                                       auto_delete=False)
 
         self.channel.queue_declare(queue=settings.QUEUE_ETL)
+        self.channel.queue_declare(queue=settings.QUEUE_ETL_RESPONSE)
+        self.channel.queue_declare(queue=settings.QUEUE_OPTIMIZER)
+        self.channel.queue_declare(queue=settings.QUEUE_OPTIMIZER_RESPONSE)
+
         self.channel.queue_bind(queue=settings.QUEUE_ETL,
                                 exchange=settings.EXCHANGE,
                                 routing_key=settings.QUEUE_ETL_ROUTING_KEY)
 
-        self.channel.queue_declare(queue=settings.QUEUE_ETL_RESPONSE)
+        self.channel.queue_bind(queue=settings.QUEUE_OPTIMIZER,
+                                exchange=settings.EXCHANGE,
+                                routing_key=settings.QUEUE_OPTIMIZER_ROUTING_KEY)
+
         self.channel.queue_bind(queue=settings.QUEUE_ETL_RESPONSE,
                                 exchange=settings.EXCHANGE_RESPONSE,
                                 routing_key=settings.QUEUE_ETL_RESPONSE_ROUTING_KEY)
 
+        self.channel.queue_bind(queue=settings.QUEUE_OPTIMIZER_RESPONSE,
+                                exchange=settings.EXCHANGE_RESPONSE,
+                                routing_key=settings.QUEUE_OPTIMIZER_RESPONSE_ROUTING_KEY)
+
         def callback(ch, method, properties, body):
-            # self.channel.basic_ack(delivery_tag=method.delivery_tag)
-            self.message_data = body.decode('utf-8')
+            self.response_data = body.decode('utf-8')
 
             self.channel.basic_cancel(consumer_tag=settings.CONSUMER_TAG)
             self.channel.stop_consuming()
@@ -56,13 +74,10 @@ class RabbitmqHandler:
         try:
             print(' [*] Waiting for messages. To exit press CTRL+C')
             self.channel.start_consuming()
-        except:
-            print("error")
+        except Exception as e:
+            print(e)
 
     def basic_producer(self, exchange, routing_key, body):
         self.channel.basic_publish(exchange=exchange,
                                    routing_key=routing_key,
                                    body=body)
-
-    def get_message(self):
-        return self.message_data
