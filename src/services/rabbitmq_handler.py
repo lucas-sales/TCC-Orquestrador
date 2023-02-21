@@ -1,9 +1,11 @@
 import pika
 
 from src.config import settings
+from src.models.rabbitmq_strategy import RabbitmqStrategy
+from src.utils.rabbitmq_variables_optimizer import get_exchanges, get_queues
 
 
-class RabbitmqHandler:
+class RabbitmqHandler(RabbitmqStrategy):
     def __init__(self):
         self.connection = None
         self.channel = None
@@ -26,22 +28,15 @@ class RabbitmqHandler:
         self.channel = self.connection.channel()
 
         # Declaration of rabbitmq structure
-        self.channel.exchange_declare(exchange=settings.EXCHANGE,
-                                      exchange_type=settings.EXCHANGE_TYPE,
-                                      passive=False,
-                                      durable=True,
-                                      auto_delete=False)
+        for exchange in get_exchanges():
+            self.channel.exchange_declare(exchange=exchange,
+                                          exchange_type=settings.EXCHANGE_TYPE,
+                                          passive=False,
+                                          durable=True,
+                                          auto_delete=False)
 
-        self.channel.exchange_declare(exchange=settings.EXCHANGE_RESPONSE,
-                                      exchange_type=settings.EXCHANGE_TYPE,
-                                      passive=False,
-                                      durable=True,
-                                      auto_delete=False)
-
-        self.channel.queue_declare(queue=settings.QUEUE_ETL)
-        self.channel.queue_declare(queue=settings.QUEUE_ETL_RESPONSE)
-        self.channel.queue_declare(queue=settings.QUEUE_OPTIMIZER)
-        self.channel.queue_declare(queue=settings.QUEUE_OPTIMIZER_RESPONSE)
+        for queue in get_queues():
+            self.channel.queue_declare(queue=queue)
 
         self.channel.queue_bind(queue=settings.QUEUE_ETL,
                                 exchange=settings.EXCHANGE,
@@ -51,6 +46,10 @@ class RabbitmqHandler:
                                 exchange=settings.EXCHANGE,
                                 routing_key=settings.QUEUE_OPTIMIZER_ROUTING_KEY)
 
+        self.channel.queue_bind(queue=settings.QUEUE_MIGRATION,
+                                exchange=settings.EXCHANGE,
+                                routing_key=settings.QUEUE_MIGRATION_ROUTING_KEY)
+
         self.channel.queue_bind(queue=settings.QUEUE_ETL_RESPONSE,
                                 exchange=settings.EXCHANGE_RESPONSE,
                                 routing_key=settings.QUEUE_ETL_RESPONSE_ROUTING_KEY)
@@ -58,6 +57,10 @@ class RabbitmqHandler:
         self.channel.queue_bind(queue=settings.QUEUE_OPTIMIZER_RESPONSE,
                                 exchange=settings.EXCHANGE_RESPONSE,
                                 routing_key=settings.QUEUE_OPTIMIZER_RESPONSE_ROUTING_KEY)
+
+        self.channel.queue_bind(queue=settings.QUEUE_MIGRATION_RESPONSE,
+                                exchange=settings.EXCHANGE_RESPONSE,
+                                routing_key=settings.QUEUE_MIGRATION_RESPONSE_ROUTING_KEY)
 
         def callback(ch, method, properties, body):
             self.response_data = body.decode('utf-8')
